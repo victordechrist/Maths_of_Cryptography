@@ -3,8 +3,11 @@
 // lesson slug (e.g. 'divisibility-euclidean-algorithm' = lesson 1.1).
 
 import type { LabExercise } from './types';
+import { l1_1Exercise } from './lessons/l1-1';
 
-export const LAB_EXERCISES: Readonly<Record<string, LabExercise>> = {};
+export const LAB_EXERCISES: Readonly<Record<string, LabExercise>> = {
+  [l1_1Exercise.labSlug]: l1_1Exercise,
+};
 
 /** The exercise for a lesson, or undefined when the lesson has none. */
 export function getExercise(labSlug: string): LabExercise | undefined {
