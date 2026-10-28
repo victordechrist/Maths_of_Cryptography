@@ -15,6 +15,8 @@ import { RSADemo } from "@/components/interactive/rsa-demo"
 import { EllipticCurveVisualizer } from "@/components/interactive/elliptic-curve-visualizer"
 import { getExercise } from "@/lib/exercises"
 import { ExercisePlayer } from "@/components/exercise/ExercisePlayer"
+import { getLabTask } from "@/lib/consensus"
+import { ConsensusWorkspace } from "@/components/consensus/ConsensusWorkspace"
 import { LabTabs } from "@/components/course/LabTabs"
 
 // Helper to flatten all lessons with module information
@@ -71,6 +73,7 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
   // Fetch detailed lesson content
   const lessonDetail = allLessonDetails[lesson.slug]
   const exercise = getExercise(lesson.slug)
+  const task = getLabTask(lesson.slug)
 
   const quizKeyMap: Record<string, string> = {
     "divisibility-euclidean-algorithm": "divisibility-euclidean-algorithm",
@@ -277,6 +280,7 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
               </>
             }
             exercise={exercise ? <ExercisePlayer exercise={exercise} /> : undefined}
+            workspace={task ? <ConsensusWorkspace task={task} /> : undefined}
           />
         </div>
 
