@@ -4,9 +4,11 @@
 
 import type { LabExercise } from './types';
 import { l1_1Exercise } from './lessons/l1-1';
+import { l1_2Exercise } from './lessons/l1-2';
 
 export const LAB_EXERCISES: Readonly<Record<string, LabExercise>> = {
   [l1_1Exercise.labSlug]: l1_1Exercise,
+  [l1_2Exercise.labSlug]: l1_2Exercise,
 };
 
 /** The exercise for a lesson, or undefined when the lesson has none. */
