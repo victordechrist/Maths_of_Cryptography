@@ -1,0 +1,103 @@
+import type { LabTask } from '../types';
+
+// Lesson 1.1 — why the Euclidean algorithm works and why crypto leans on it.
+export const l1_1Task: LabTask = {
+  labSlug: 'divisibility-euclidean-algorithm',
+  title: 'Why Euclid Works — and Why Crypto Leans on It',
+  brief:
+    'Argue the three pillars of lesson 1.1: that the remainder chain must terminate, that Bézout is exactly the inverse-existence condition, and that the extended algorithm is the machinery RSA keygen actually runs.',
+  scenes: [
+    {
+      id: 'scene-1-1-1',
+      order: 1,
+      title: 'Termination argument',
+      narration:
+        'The Euclidean algorithm divides a by b and replaces (a, b) with (b, a mod b). Since a mod b < b, the second argument strictly decreases every round while staying non-negative — a descending chain of integers cannot run forever. Each step also preserves gcd: any common divisor of a and b divides a mod b, and vice versa.',
+      goal: 'Commit the two halves of the correctness argument: preservation of the gcd and guaranteed termination.',
+      goldNodeIds: ['s1', 'x1', 'x2'],
+      elicitation: 'code-cell',
+      hints: [
+        'Preservation: d | a and d | b ⟺ d | b and d | (a mod b) — the same divisor set survives each round.',
+        'Termination: a mod b < b means the smaller slot strictly descends; it must hit 0 in ≤ b rounds.',
+      ],
+    },
+    {
+      id: 'scene-1-1-2',
+      order: 2,
+      title: 'Bézout ⟺ inverse exists',
+      narration:
+        'An inverse of a mod m is an x with a·x ≡ 1 (mod m) — i.e., a·x + m·y = 1 for some y. Bézout says such (x, y) exist iff gcd(a, m) = 1. The extended algorithm does not just check coprimality — it returns the very coefficient that is the inverse.',
+      goal: 'Commit why "inverse exists" and "gcd = 1" are the same condition, and where x comes from.',
+      goldNodeIds: ['s2', 'x3', 'x4'],
+      elicitation: 'code-cell',
+      hints: [
+        'a·x ≡ 1 (mod m) is a·x + m·y = 1 rearranged — a linear Diophantine equation.',
+        'Bézout: solvable iff gcd(a, m) divides 1 — i.e. gcd = 1. Extended Euclid hands back x directly.',
+      ],
+    },
+    {
+      id: 'scene-1-1-3',
+      order: 3,
+      title: 'The crypto pipeline',
+      narration:
+        'RSA key generation picks e, then needs d = e⁻¹ mod φ(n). Lamé\'s theorem bounds Euclidean rounds by ~5× the digit count of the smaller input — logarithmic time on thousand-bit moduli. The extended algorithm is therefore the exact subroutine RSA runs at keygen; fast modular inversion is not optional.',
+      goal: 'Commit the efficiency claim and the pipeline position: where extended-GCD sits inside RSA.',
+      goldNodeIds: ['s3', 'x5', 'x6'],
+      elicitation: 'code-cell',
+      hints: [
+        'Lamé: rounds ≤ 5·digits(min(a,b)) — logarithmic, not trial-and-error, even at 2048 bits.',
+        'RSA: d must invert e mod φ(n); extended_gcd(e, φ(n)) returns the coefficient that is d.',
+      ],
+    },
+  ],
+  goldTree: {
+    labSlug: 'divisibility-euclidean-algorithm',
+    rootId: 'g1',
+    version: 1,
+    prunedNodeIds: [],
+    activePath: ['g1', 's1', 's2', 's3', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6'],
+    nodes: [
+      { id: 'g1', label: 'Prove Euclid + locate it in RSA',
+        content: 'Argue correctness (preserve + terminate), derive the inverse condition, place extended-GCD in RSA keygen.',
+        kind: 'goal', status: 'confirmed', parentId: null },
+      { id: 's1', label: 'Correctness of Euclid',
+        content: 'Every round preserves the gcd while the remainder strictly descends.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's2', label: 'Inverse ⟺ gcd = 1',
+        content: 'a·x ≡ 1 (mod m) solvable exactly when a, m are coprime — Bézout constructs x.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's3', label: 'Efficiency → RSA keygen',
+        content: 'Logarithmic rounds make extended-GCD the actual inverse subroutine in RSA.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 'x1', label: 'gcd preservation',
+        content: 'gcd(a, b) = gcd(b, a mod b): the common-divisor set is identical across the swap.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x2', label: 'Strict descent terminates',
+        content: 'a mod b < b and remainders stay ≥ 0 → the chain must reach 0; no infinite loop.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x3', label: 'Congruence → linear equation',
+        content: 'a·x ≡ 1 (mod m) ⇔ a·x + m·y = 1 — Bézout applies, so solvability is gcd | 1.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x4', label: 'x is the inverse',
+        content: 'Extended Euclid returns (g, x, y); when g = 1 the x coefficient satisfies a·x ≡ 1 (mod m).',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x5', label: 'Lamé → O(log n) rounds',
+        content: 'Rounds are bounded by the smaller input\'s digit count — fast even on 2048-bit moduli.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x6', label: 'd from extended_gcd(e, φ(n))',
+        content: 'RSA private exponent d is literally the Bézout coefficient — keygen runs this subroutine.',
+        kind: 'evidence', status: 'confirmed' },
+    ],
+    edges: [
+      { from: 'g1', to: 's1', relation: 'elaborates' },
+      { from: 'g1', to: 's2', relation: 'elaborates' },
+      { from: 's2', to: 's3', relation: 'depends-on' },
+      { from: 's1', to: 'x1', relation: 'elaborates' },
+      { from: 's1', to: 'x2', relation: 'elaborates' },
+      { from: 's2', to: 'x3', relation: 'elaborates' },
+      { from: 's2', to: 'x4', relation: 'elaborates' },
+      { from: 's3', to: 'x5', relation: 'elaborates' },
+      { from: 's3', to: 'x6', relation: 'elaborates' },
+    ],
+  },
+};

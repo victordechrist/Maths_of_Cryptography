@@ -128,3 +128,60 @@ npm run build
 4. Build Command: `npm run build`.
 5. Output Directory: `.next`.
 6. Click **Deploy** (No environment variables required).
+
+---
+
+## 🧩 Guided Exercises & Reasoning Trees (`moc:v1`)
+
+Two interactive features live alongside the lessons — both fully client-side, persisted in `localStorage` under the `moc:v1` namespace (independent of `crypto_course_progress`):
+
+- **Exercise** — drag-and-drop guided construction: assemble the algorithm one step at a time. Sequential step locking, deterministic shuffle, checks report only "N of M in the right place", free resets, ArrowUp/ArrowDown keyboard reordering.
+- **Workspace** — a consensus (reasoning) tree: narrated scenes elicit a committed thought per scene; the tree scores against a hidden gold tree (alignment %, confirmed/error/pruned counts).
+
+### Authoring an exercise
+
+One file per lesson at `src/lib/exercises/lessons/l<M>-<order>.ts` (e.g. `l1-1.ts` = module 1, order 1), registered in `src/lib/exercises/index.ts` keyed by the lesson slug:
+
+```ts
+export const l1_1Exercise: LabExercise = {
+  labSlug: 'divisibility-euclidean-algorithm', // must match syllabus.ts
+  title: 'The Extended Euclidean Algorithm',
+  intro: 'One line on what the student builds and why.',
+  steps: [{
+    id: 'l1-1-s1', order: 1,
+    title: 'Extended GCD loop',
+    instruction: 'What to assemble and why the order matters.',
+    expectedInput: 'a, b (a > b > 0)',
+    expectedOutput: '(gcd, x, y) with a·x + b·y = gcd',
+    solution: ['b1', 'b2', 'b3'],        // ordered block ids — never rendered
+    blocks: [
+      { id: 'b1', code: 'def extended_gcd(a, b):', caption: 'signature' },
+      // ...
+      { id: 'b9', code: '...', caption: 'why it tempts', isDistractor: true },
+    ],
+  }],
+};
+```
+
+Invariants: solutions concatenate into valid Python; 1–2 `isDistractor` blocks per step encode the lesson's real misconception; `solution`/`isDistractor` stay out of rendered DOM.
+
+### Authoring a reasoning task
+
+One file per lesson at `src/lib/consensus/tasks/l<M>-<order>.ts`, registered in `src/lib/consensus/index.ts`:
+
+```ts
+export const l1_1Task: LabTask = {
+  labSlug: 'divisibility-euclidean-algorithm',
+  title: '…', brief: '…',
+  scenes: [{ id, order, title, narration, goal, goldNodeIds, elicitation: 'code-cell', hints }],
+  goldTree: { /* 10 nodes: goal → 3 subgoals → operator/evidence leaves, ≤2 children/node */ },
+};
+```
+
+Invariants: `error` commits branch as dead-end children (never mutate the parent); repairs add a `repairs` edge and prune the target; the gold tree stays locked until ≥1 commit per scene, then is read-only; matching is token-overlap (threshold 0.4, min 2 hits) — phrasing does not need to be exact.
+
+### Storage contract
+
+- `moc:v1:exercise:{lessonSlug}:{stepId}` → `ExerciseStepProgress` (placed ids, attempts, completedAt)
+- `moc:v1:tree:{lessonSlug}` → `ConsensusGraph`
+- Bump the `v1` segment only if a persisted shape changes incompatibly.

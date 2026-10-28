@@ -13,6 +13,11 @@ import { ModularCalculator } from "@/components/interactive/modular-calculator"
 import { DiffieHellmanDemo } from "@/components/interactive/diffie-hellman-demo"
 import { RSADemo } from "@/components/interactive/rsa-demo"
 import { EllipticCurveVisualizer } from "@/components/interactive/elliptic-curve-visualizer"
+import { getExercise } from "@/lib/exercises"
+import { ExercisePlayer } from "@/components/exercise/ExercisePlayer"
+import { getLabTask } from "@/lib/consensus"
+import { ConsensusWorkspace } from "@/components/consensus/ConsensusWorkspace"
+import { LabTabs } from "@/components/course/LabTabs"
 
 // Helper to flatten all lessons with module information
 function getAllLessonsWithModuleInfo() {
@@ -67,6 +72,8 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
 
   // Fetch detailed lesson content
   const lessonDetail = allLessonDetails[lesson.slug]
+  const exercise = getExercise(lesson.slug)
+  const task = getLabTask(lesson.slug)
 
   const quizKeyMap: Record<string, string> = {
     "divisibility-euclidean-algorithm": "divisibility-euclidean-algorithm",
@@ -140,6 +147,9 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content Column */}
         <div className="lg:col-span-3 space-y-10">
+          <LabTabs
+            guide={
+              <>
           {lessonDetail ? (
             lessonDetail.sections.map((section) => (
               <Section key={section.id} id={section.id} title={section.title}>
@@ -266,6 +276,11 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
                   }
                 : undefined
             }
+          />
+              </>
+            }
+            exercise={exercise ? <ExercisePlayer exercise={exercise} /> : undefined}
+            workspace={task ? <ConsensusWorkspace task={task} /> : undefined}
           />
         </div>
 
