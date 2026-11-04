@@ -18,6 +18,12 @@ import { ExercisePlayer } from "@/components/exercise/ExercisePlayer"
 import { getLabTask } from "@/lib/consensus"
 import { ConsensusWorkspace } from "@/components/consensus/ConsensusWorkspace"
 import { LabTabs } from "@/components/course/LabTabs"
+import { GatedLabTab } from "@/components/labs/GatedLabTab"
+import { LabViewLogger } from "@/components/labs/LabViewLogger"
+import { ThoughtTreeButton } from "@/components/labs/ThoughtTreeButton"
+import { ExerciseProgressBadge } from "@/components/labs/ExerciseProgressBadge"
+import { WorkspaceProgressBadge } from "@/components/labs/WorkspaceProgressBadge"
+import { previousVisibleLab } from "@/lib/exercises/gating"
 
 // Helper to flatten all lessons with module information
 function getAllLessonsWithModuleInfo() {
@@ -74,6 +80,7 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
   const lessonDetail = allLessonDetails[lesson.slug]
   const exercise = getExercise(lesson.slug)
   const task = getLabTask(lesson.slug)
+  const previousLab = previousVisibleLab(lesson.slug)
 
   const quizKeyMap: Record<string, string> = {
     "divisibility-euclidean-algorithm": "divisibility-euclidean-algorithm",
@@ -140,6 +147,9 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
           <div className="flex items-center gap-2">
             <BookOpen className="h-4 w-4 text-primary" />
             <span>Lesson {index + 1} of {allLessons.length} Total</span>
+            {exercise && <ExerciseProgressBadge labSlug={lesson.slug} steps={exercise.steps} />}
+            {task && <WorkspaceProgressBadge labSlug={lesson.slug} goldTotal={task.goldTree.nodes.length} />}
+            {task && <ThoughtTreeButton labSlug={lesson.slug} source="lab-header" />}
           </div>
         </div>
       </PageHeader>
@@ -147,7 +157,9 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Main Content Column */}
         <div className="lg:col-span-3 space-y-10">
+          <LabViewLogger labSlug={lesson.slug} />
           <LabTabs
+            labSlug={lesson.slug}
             guide={
               <>
           {lessonDetail ? (
@@ -279,8 +291,16 @@ export default async function LessonDetailPage({ params }: { params: Promise<{ s
           />
               </>
             }
-            exercise={exercise ? <ExercisePlayer exercise={exercise} /> : undefined}
-            workspace={task ? <ConsensusWorkspace task={task} /> : undefined}
+            exercise={exercise ? (
+              <GatedLabTab labSlug={lesson.slug} previousLab={previousLab} tab="exercise">
+                <ExercisePlayer exercise={exercise} />
+              </GatedLabTab>
+            ) : undefined}
+            workspace={task ? (
+              <GatedLabTab labSlug={lesson.slug} previousLab={previousLab} tab="workspace">
+                <ConsensusWorkspace task={task} />
+              </GatedLabTab>
+            ) : undefined}
           />
         </div>
 

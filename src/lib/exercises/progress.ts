@@ -10,7 +10,7 @@ export const EMPTY_PROGRESS: ExerciseStepProgress = {
   completedAt: null,
 };
 
-const STORAGE_EVENT = 'moc:localstorage';
+export const STORAGE_EVENT = 'moc:localstorage';
 
 function readRaw(key: string): string | null {
   try {
