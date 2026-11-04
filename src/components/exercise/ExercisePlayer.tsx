@@ -1,7 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { LabExercise } from '@/lib/exercises/types';
+import { emitActivity } from '@/lib/activity';
+import { getLabTask } from '@/lib/consensus';
+import { autoCommitThought, autoSceneId } from '@/lib/consensus/autoCommit';
 import {
   useExerciseProgress,
   writeStepProgress,
@@ -20,6 +23,10 @@ interface ExercisePlayerProps {
   exercise: LabExercise;
 }
 
+/** One auto-committed error node per step per session — repeated failed
+ * checks must not flood the tree. */
+const autoErrorCommitted = new Set<string>();
+
 /**
  * Drag-and-drop guided exercise. Steps unlock sequentially; progress persists
  * per step in localStorage under iml:v1:exercise:{labSlug}:{stepId}.
@@ -34,6 +41,16 @@ export function ExercisePlayer({ exercise }: ExercisePlayerProps) {
   const { progress, hydrated } = useExerciseProgress(exercise.labSlug, steps);
   const [activeStepId, setActiveStepId] = useState(steps[0]?.id ?? '');
   const [feedback, setFeedback] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const viewed = steps.find((s) => s.id === activeStepId);
+    if (!viewed) return;
+    emitActivity('exercise.step.view', {
+      labSlug: exercise.labSlug,
+      data: { stepId: viewed.id, order: viewed.order },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStepId, exercise.labSlug]);
 
   const activeIndex = Math.max(
     0,
@@ -79,35 +96,102 @@ export function ExercisePlayer({ exercise }: ExercisePlayerProps) {
     setFeedback((f) => ({ ...f, [step.id]: '' }));
   };
 
-  const append = (blockId: string) => mutate([...placed, blockId]);
-  const removeAt = (index: number) => mutate(placed.filter((_, i) => i !== index));
+  const append = (blockId: string) => {
+    emitActivity('exercise.block.place', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, blockId, index: placed.length },
+    });
+    mutate([...placed, blockId]);
+  };
+  const removeAt = (index: number) => {
+    emitActivity('exercise.block.remove', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, blockId: placed[index], index },
+    });
+    mutate(placed.filter((_, i) => i !== index));
+  };
   const insert = (blockId: string, index: number) => {
     const next = [...placed];
     next.splice(index, 0, blockId);
+    emitActivity('exercise.block.place', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, blockId, index },
+    });
     mutate(next);
   };
   const reorder = (from: number, to: number) => {
     const next = [...placed];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
+    emitActivity('exercise.block.place', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, blockId: item, from, to, reorder: true },
+    });
     mutate(next);
   };
 
   const check = () => {
+    emitActivity('exercise.check.attempt', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, placed: placed.length },
+    });
     const isCorrect =
       placed.length === step.solution.length &&
       placed.every((id, i) => id === step.solution[i]);
     if (isCorrect) {
+      emitActivity('exercise.check.result', {
+        labSlug: exercise.labSlug,
+        data: { stepId: step.id, passed: true, correctCount: step.solution.length, totalBlocks: step.solution.length },
+      });
+      emitActivity('exercise.step.complete', {
+        labSlug: exercise.labSlug,
+        data: { stepId: step.id, attempts: stepProgress.attempts },
+      });
       writeStepProgress(exercise.labSlug, step.id, {
         placed,
         attempts: stepProgress.attempts,
         completedAt: new Date().toISOString(),
       });
+      const task = getLabTask(exercise.labSlug);
+      if (task) {
+        autoCommitThought(exercise.labSlug, {
+          content: `Solved step ${step.order}: "${step.title}" (${stepProgress.attempts} attempt${stepProgress.attempts === 1 ? '' : 's'})`,
+          kind: 'evidence',
+          sceneId: autoSceneId(task),
+        });
+      }
+      const allDone = steps.every(
+        (s) => s.id === step.id || progress[s.id]?.completedAt != null,
+      );
+      if (allDone) {
+        emitActivity('exercise.lab.complete', { labSlug: exercise.labSlug });
+        if (task) {
+          autoCommitThought(exercise.labSlug, {
+            content: `Completed lab exercise: ${exercise.title ?? exercise.labSlug}`,
+            kind: 'subgoal',
+            sceneId: autoSceneId(task),
+          });
+        }
+      }
       const next = steps[activeIndex + 1];
       if (next) setActiveStepId(next.id);
       return;
     }
     const right = placed.filter((id, i) => id === step.solution[i]).length;
+    emitActivity('exercise.check.result', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id, passed: false, correctCount: right, totalBlocks: step.solution.length },
+    });
+    const errKey = `${exercise.labSlug}:${step.id}`;
+    const task = getLabTask(exercise.labSlug);
+    if (task && !autoErrorCommitted.has(errKey)) {
+      autoErrorCommitted.add(errKey);
+      autoCommitThought(exercise.labSlug, {
+        content: `Attempt failed on step ${step.order} — ${right} of ${step.solution.length} blocks in the right place`,
+        kind: 'error',
+        sceneId: autoSceneId(task),
+      });
+    }
     writeStepProgress(exercise.labSlug, step.id, {
       placed,
       attempts: stepProgress.attempts + 1,
@@ -120,6 +204,10 @@ export function ExercisePlayer({ exercise }: ExercisePlayerProps) {
   };
 
   const reset = () => {
+    emitActivity('exercise.reset', {
+      labSlug: exercise.labSlug,
+      data: { stepId: step.id },
+    });
     resetStepProgress(exercise.labSlug, step.id);
     setFeedback((f) => ({ ...f, [step.id]: '' }));
   };

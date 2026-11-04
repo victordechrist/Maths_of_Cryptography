@@ -58,6 +58,8 @@ export interface ConsensusNode {
   /** Scene the thought was committed under. */
   sceneId?: string;
   hintUsed?: boolean;
+  /** How the node entered the tree — engagement events commit 'auto' nodes. */
+  source?: 'auto' | 'manual';
 }
 
 export interface ConsensusEdge {

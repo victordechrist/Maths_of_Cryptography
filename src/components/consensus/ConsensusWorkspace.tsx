@@ -1,7 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LabTask, NodeKind } from '@/lib/consensus/types';
+import { emitActivity } from '@/lib/activity';
+import { autoCommitThought } from '@/lib/consensus/autoCommit';
 import { scoreTree, scenesWithCommits } from '@/lib/consensus/tree';
 import { useConsensusTree } from '@/lib/consensus/useConsensusTree';
 import { Button } from '@/components/ui/button';
@@ -14,7 +16,6 @@ import {
   GitCommitHorizontal,
   Lightbulb,
   Lock,
-  RotateCcw,
   Star,
 } from 'lucide-react';
 
@@ -33,6 +34,9 @@ const KIND_OPTIONS: Array<{ kind: NodeKind; label: string; help: string }> = [
 
 type View = 'mine' | 'gold';
 
+/** Scenes already auto-committed this session (max 1 evidence node each). */
+const sceneViewCommitted = new Set<string>();
+
 /**
  * Per-lab consensus workspace: narrated scenes, a "Commit thought" flow that
  * grows a tree persisted at iml:v1:tree:{labSlug}, a scoreboard against the
@@ -40,7 +44,7 @@ type View = 'mine' | 'gold';
  */
 export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
   const scenes = useMemo(() => [...task.scenes].sort((a, b) => a.order - b.order), [task.scenes]);
-  const { graph, hydrated, commit, reset } = useConsensusTree(task);
+  const { graph, hydrated, commit } = useConsensusTree(task);
 
   const [sceneIndex, setSceneIndex] = useState(0);
   const [draft, setDraft] = useState('');
@@ -49,7 +53,7 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
   const [hintsShown, setHintsShown] = useState<Record<string, number>>({});
   const [lastResult, setLastResult] = useState<{ tone: 'gold' | 'plain' | 'error'; text: string } | null>(null);
   const [view, setView] = useState<View>('mine');
-  const [confirmReset, setConfirmReset] = useState(false);
+
 
   const scene = scenes[sceneIndex];
   const score = useMemo(() => scoreTree(graph, task), [graph, task]);
@@ -67,6 +71,28 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
   const isErrorKind = kind === 'error' || kind === 'dead-end';
   const repairTarget = openErrors.some((n) => n.id === repairTargetId) ? repairTargetId : '';
 
+  const prevGoldUnlocked = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    if (prevGoldUnlocked.current === false && goldUnlocked) {
+      emitActivity('tree.gold.unlock', { labSlug: task.labSlug });
+    }
+    prevGoldUnlocked.current = goldUnlocked;
+  }, [goldUnlocked, hydrated, task.labSlug]);
+
+  useEffect(() => {
+    if (!hydrated || !scene) return;
+    const key = `${task.labSlug}:${scene.id}`;
+    if (sceneViewCommitted.has(key)) return;
+    sceneViewCommitted.add(key);
+    autoCommitThought(task.labSlug, {
+      content: `Read scene ${scene.order}: "${scene.title}"`,
+      kind: 'evidence',
+      sceneId: scene.id,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scene?.id, hydrated, task.labSlug]);
+
   if (!scene) return null;
 
   const shownHints = hintsShown[scene.id] ?? 0;
@@ -82,12 +108,34 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
       hintUsed: shownHints > 0,
       repairTargetId: !isErrorKind && repairTarget ? repairTarget : null,
     });
+    emitActivity('tree.thought.commit', {
+      labSlug: task.labSlug,
+      data: {
+        nodeId: result.node.id,
+        kind,
+        sceneId: scene.id,
+        source: 'manual',
+        matchedGold: Boolean(result.matchedGoldId),
+      },
+    });
+    if (isErrorKind) {
+      emitActivity('tree.thought.error', {
+        labSlug: task.labSlug,
+        data: { nodeId: result.node.id, kind, sceneId: scene.id },
+      });
+    }
     if (result.node.status === 'dead-end') {
       setLastResult({ tone: 'error', text: 'Error branched off the tree — your path continues from where it was.' });
     } else if (result.matchedGoldId) {
       setLastResult({ tone: 'gold', text: 'Aligned with the canonical reasoning path.' });
     } else {
       setLastResult({ tone: 'plain', text: 'Thought committed — no gold match yet. Try naming the concrete step or evidence.' });
+    }
+    if (repairTarget) {
+      emitActivity('tree.thought.repair', {
+        labSlug: task.labSlug,
+        data: { nodeId: result.node.id, repairs: repairTarget, sceneId: scene.id },
+      });
     }
     setDraft('');
     setRepairTargetId('');
@@ -340,39 +388,7 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
                 Unlocks after a thought in every scene ({hydrated ? scenes.length - scenesLeftForGold : 0}/{scenes.length})
               </span>
             )}
-            <div className="ml-auto">
-              {confirmReset ? (
-                <span className="inline-flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-500 dark:text-slate-400">Clear your tree?</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      reset();
-                      setConfirmReset(false);
-                      setLastResult(null);
-                      setView('mine');
-                    }}
-                    className="border-red-300 text-red-600 dark:border-red-800 dark:text-red-400"
-                  >
-                    Yes, reset
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setConfirmReset(false)}>
-                    Cancel
-                  </Button>
-                </span>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setConfirmReset(true)}
-                  disabled={!hydrated || !hasCommits}
-                  className="gap-1.5"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Reset tree
-                </Button>
-              )}
-            </div>
+
           </div>
 
           {activeView === 'gold' ? (

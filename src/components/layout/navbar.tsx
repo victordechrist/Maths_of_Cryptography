@@ -22,9 +22,17 @@ const primaryNavItems = [
 ]
 
 const secondaryNavItems = [
+  { href: "/progress", label: "Progress" },
   { href: "/about", label: "About" },
   { href: "/prerequisites", label: "Prerequisites" },
   { href: "/resources", label: "Resources" },
+]
+
+const externalLinks = [
+  {
+    href: "https://github.com/victordechrist/slides/tree/main/Mathematics%20of%20Cryptography",
+    label: "Slides",
+  },
 ]
 
 export function Navbar() {
@@ -79,6 +87,13 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
               ))}
+              {externalLinks.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="w-full cursor-pointer">
+                    {item.label}
+                  </a>
+                </DropdownMenuItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
@@ -102,6 +117,18 @@ export function Navbar() {
       {/* Mobile navigation */}
       {isOpen && (
         <div className="md:hidden border-b bg-background px-4 py-4 space-y-3">
+          {externalLinks.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setIsOpen(false)}
+            >
+              {item.label}
+            </a>
+          ))}
           {[...primaryNavItems, ...secondaryNavItems].map((item) => {
             const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href))
             return (

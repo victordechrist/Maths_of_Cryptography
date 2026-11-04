@@ -11,3 +11,13 @@ export function exerciseProgressKey(labSlug: string, stepId: string): string {
 export function consensusTreeKey(labSlug: string): string {
   return `${MOC_STORAGE_PREFIX}:tree:${labSlug}`;
 }
+
+/** localStorage key for the append-only activity log (JSON array). */
+export function activityLogKey(): string {
+  return `${MOC_STORAGE_PREFIX}:activity`;
+}
+
+/** localStorage key for the persistent anonymous research id. */
+export function anonymousUidKey(): string {
+  return `${MOC_STORAGE_PREFIX}:uid`;
+}

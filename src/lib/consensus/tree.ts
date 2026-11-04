@@ -82,10 +82,6 @@ const STOPWORDS = new Set([
   'loss', 'epoch', 'model', 'none', 'true', 'false', 'and', 'not', 'elif',
   'else', 'yield', 'async', 'await', 'pass', 'raise', 'try', 'except',
   'finally', 'global', 'nonlocal', 'with', 'assert', 'break', 'continue',
-  // Math/proof scaffolding — the theorem terms, not the object names,
-  // carry the signal (mod, gcd, inverse stay live).
-  'theorem', 'proof', 'lemma', 'corollary', 'given', 'thus', 'hence',
-  'let', 'suppose', 'iff', 'since',
 ]);
 
 function stem(token: string): string {
@@ -168,6 +164,8 @@ export interface CommitInput {
   hintUsed?: boolean;
   /** Error node id this commit repairs (repair flow). */
   repairTargetId?: string | null;
+  /** 'auto' for nodes committed by engagement events; defaults 'manual'. */
+  source?: 'auto' | 'manual';
 }
 
 export interface CommitResult {
@@ -228,6 +226,7 @@ export function commitThought(
     goldMatchId: matchedGoldId,
     sceneId: input.sceneId,
     hintUsed: input.hintUsed ?? false,
+    source: input.source ?? 'manual',
   };
 
   const edges: ConsensusEdge[] = [
