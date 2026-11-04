@@ -1,0 +1,103 @@
+import type { LabTask } from '../types';
+
+// Lesson 1.4 — CRT: why separate congruences collapse into one, and why crypto cares.
+export const l1_4Task: LabTask = {
+  labSlug: 'chinese-remainder-theorem',
+  title: 'Why CRT — Existence, Uniqueness, and the RSA Speedup',
+  brief:
+    'Argue the three claims behind the Chinese Remainder Theorem: a solution exists for coprime moduli, it is unique mod the product, and splitting exponents across prime-power moduli is exactly how real RSA implementations run 4× faster.',
+  scenes: [
+    {
+      id: 'scene-1-4-1',
+      order: 1,
+      title: 'Existence via Bézout',
+      narration:
+        'Two congruences x ≡ a1 (mod m1), x ≡ a2 (mod m2) look unrelated — until Bézout writes m1·s + m2·t = 1. Multiply that identity by the residues and the combination a1·m2·t + a2·m1·s satisfies both congruences at once. Coprimality is exactly the gap Bézout fills.',
+      goal: 'Commit why coprimality unlocks a construction, and reconstruct the explicit formula.',
+      goldNodeIds: ['s1', 'x1', 'x2'],
+      elicitation: 'code-cell',
+      hints: [
+        'm2·t ≡ 1 (mod m1) and ≡ 0 (mod m2) — it is a selector.',
+        'a1·(mod-m2 selector) + a2·(mod-m1 selector) hits both targets.',
+      ],
+    },
+    {
+      id: 'scene-1-4-2',
+      order: 2,
+      title: 'Uniqueness mod the product',
+      narration:
+        'Two solutions x, y satisfy the same congruences, so m1 | (x−y) and m2 | (x−y). Since the moduli are coprime, their product divides (x−y): the solutions differ by a multiple of m1·m2. There is exactly one residue class modulo M = m1·m2.',
+      goal: 'Commit the uniqueness argument and why the modulus of the answer is the product.',
+      goldNodeIds: ['s2', 'x3', 'x4'],
+      elicitation: 'code-cell',
+      hints: [
+        'Coprime: m1 | z and m2 | z together imply m1·m2 | z.',
+        'The answer is a residue class, not a single integer.',
+      ],
+    },
+    {
+      id: 'scene-1-4-3',
+      order: 3,
+      title: 'CRT in RSA decryption',
+      narration:
+        'RSA decryption computes m = c^d mod n with n = p·q. Instead of one huge exponentiation mod n, implementations compute m_p = c^dp mod p and m_q = c^dq mod q with d_p = d mod (p−1), then recombine via CRT. Half-size moduli and half-size exponents ≈ 4× faster — every production RSA library does this.',
+      goal: 'Commit the speedup mechanism: exponent reduction mod (p−1), (q−1) plus the CRT recombination.',
+      goldNodeIds: ['s3', 'x5', 'x6'],
+      elicitation: 'code-cell',
+      hints: [
+        'Fermat/Euler: exponent reduces mod p−1 when working mod p.',
+        '1024-bit n → two 512-bit exponentiations, each ~8× cheaper.',
+      ],
+    },
+  ],
+  goldTree: {
+    labSlug: 'chinese-remainder-theorem',
+    rootId: 'g1',
+    version: 1,
+    prunedNodeIds: [],
+    activePath: ['g1', 's1', 's2', 's3', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6'],
+    nodes: [
+      { id: 'g1', label: 'Prove CRT and locate it in RSA',
+        content: 'Existence via Bézout, uniqueness mod product, and the 4× decryption speedup.',
+        kind: 'goal', status: 'confirmed', parentId: null },
+      { id: 's1', label: 'Existence from Bézout',
+        content: 'm1·s + m2·t = 1 turns the identity into a two-congruence selector.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's2', label: 'Unique mod m1·m2',
+        content: 'Common solutions differ by a multiple of the product — one residue class exists.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's3', label: 'RSA-CRT speedup',
+        content: 'Exponentiate mod p and mod q separately, recombine — ~4× faster decryption.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 'x1', label: 'Bézout fills the gap',
+        content: 'Coprimality means the identity m1·s + m2·t = 1 exists.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x2', label: 'Selector formula',
+        content: 'x = a1·m2·t + a2·m1·s satisfies both congruences simultaneously.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x3', label: 'Difference divisible by both',
+        content: 'x ≡ y (mod m1) and (mod m2) → m1·m2 | (x−y) by coprimality.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x4', label: 'One class mod M',
+        content: 'All solutions coincide modulo m1·m2 — uniqueness, not just existence.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x5', label: 'Exponents reduce mod p−1',
+        content: 'd_p = d mod (p−1) shrinks the exponent while preserving the result mod p.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x6', label: 'Two half-size ops ≈ 4× faster',
+        content: 'm_p, m_q computed at half the bit-length then recombined via CRT.',
+        kind: 'evidence', status: 'confirmed' },
+    ],
+    edges: [
+      { from: 'g1', to: 's1', relation: 'elaborates' },
+      { from: 's1', to: 's2', relation: 'depends-on' },
+      { from: 's2', to: 's3', relation: 'depends-on' },
+      { from: 's1', to: 'x1', relation: 'elaborates' },
+      { from: 's1', to: 'x2', relation: 'elaborates' },
+      { from: 's2', to: 'x3', relation: 'elaborates' },
+      { from: 's2', to: 'x4', relation: 'elaborates' },
+      { from: 's3', to: 'x5', relation: 'elaborates' },
+      { from: 's3', to: 'x6', relation: 'elaborates' },
+    ],
+  },
+};

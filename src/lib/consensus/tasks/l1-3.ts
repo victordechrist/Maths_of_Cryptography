@@ -1,0 +1,103 @@
+import type { LabTask } from '../types';
+
+// Lesson 1.3 — primality testing: why probable-prime tests beat trial division.
+export const l1_3Task: LabTask = {
+  labSlug: 'primes-and-primality-testing',
+  title: 'Why Probable Primes — and Why Miller–Rabin',
+  brief:
+    'Argue the case for probabilistic primality testing: trial division cannot scale to RSA-size candidates, Fermat lies on Carmichael numbers, and Miller–Rabin fixes the liar problem with a bounded error per round.',
+  scenes: [
+    {
+      id: 'scene-1-3-1',
+      order: 1,
+      title: 'Trial division cannot scale',
+      narration:
+        'Testing n by dividing through √n needs ~√n divisions. For a 1024-bit candidate that is ~2^512 operations — more than the age of the universe allows. Key generation needs primality answers in milliseconds, so any √n algorithm is dead on arrival.',
+      goal: 'Commit the complexity wall: why deterministic trial division fails at RSA sizes.',
+      goldNodeIds: ['s1', 'x1', 'x2'],
+      elicitation: 'code-cell',
+      hints: [
+        '√(2^1024) = 2^512 — compare that to ~10^80 atoms in the observable universe.',
+        'Keygen tests hundreds of candidates; the cost multiplies.',
+      ],
+    },
+    {
+      id: 'scene-1-3-2',
+      order: 2,
+      title: 'Fermat test and its liars',
+      narration:
+        'Fermat\'s little theorem gives a cheap filter: if a^(n−1) ≢ 1 (mod n), n is composite. But Carmichael numbers pass for every coprime base — they are composite yet look prime to Fermat. A test that can be fooled forever cannot certify primes for keygen.',
+      goal: 'Commit both directions: what Fermat proves cheaply, and why Carmichael numbers break the converse.',
+      goldNodeIds: ['s2', 'x3', 'x4'],
+      elicitation: 'code-cell',
+      hints: [
+        'Fermat is a compositeness proof, never a primality proof.',
+        '561 = 3·11·17 is the smallest Carmichael number.',
+      ],
+    },
+    {
+      id: 'scene-1-3-3',
+      order: 3,
+      title: 'Miller–Rabin and 4^−k',
+      narration:
+        'Miller–Rabin strengthens the test through the n−1 = 2^r·d decomposition: it checks whether the squaring chain a^d, a^2d, … reaches −1 the way a prime field demands. Each independent round catches a composite with probability ≥ 3/4, so k rounds leave error ≤ 4^−k — a dial you turn until the risk is negligible.',
+      goal: 'Commit the mechanism (the 2^r·d chain) and the error bound that makes the test trustworthy in practice.',
+      goldNodeIds: ['s3', 'x5', 'x6'],
+      elicitation: 'code-cell',
+      hints: [
+        'In a field, x² ≡ 1 has only ±1 roots — a composite offers extra square roots of 1, and the chain exposes them.',
+        'Error per round ≤ 1/4 → k rounds bound the mistake at 4^−k.',
+      ],
+    },
+  ],
+  goldTree: {
+    labSlug: 'primes-and-primality-testing',
+    rootId: 'g1',
+    version: 1,
+    prunedNodeIds: [],
+    activePath: ['g1', 's1', 's2', 's3', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6'],
+    nodes: [
+      { id: 'g1', label: 'Justify probabilistic primality testing',
+        content: 'Show deterministic testing fails at RSA sizes and Miller–Rabin controls its error.',
+        kind: 'goal', status: 'confirmed', parentId: null },
+      { id: 's1', label: 'Trial division is exponential',
+        content: 'O(√n) divisions is ~2^512 work on a 1024-bit candidate.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's2', label: 'Fermat is one-directional',
+        content: 'Composite-proof yes, prime-proof no: Carmichael numbers pass every base.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 's3', label: 'Miller–Rabin bounds the error',
+        content: 'The 2^r·d chain catches composites ≥3/4 of the time; k rounds give error ≤ 4^−k.',
+        kind: 'subgoal', status: 'confirmed' },
+      { id: 'x1', label: '√n work is infeasible',
+        content: '√(2^1024) = 2^512 trial divisions — unreachable at keygen.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x2', label: 'Keygen volume multiplies it',
+        content: 'RSA generation tests many candidates before finding a prime — per-test cost must be low.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x3', label: 'FLT filters composites',
+        content: 'a^(n−1) ≢ 1 (mod n) proves n composite — cheap one-round check.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x4', label: 'Carmichael liars exist',
+        content: '561 and friends satisfy the congruence for every coprime base despite being composite.',
+        kind: 'evidence', status: 'confirmed' },
+      { id: 'x5', label: '2^r·d chain exposes liars',
+        content: 'Squaring a^d up to r−1 times must hit −1 for primes; composites reveal extra roots of 1.',
+        kind: 'operator', status: 'confirmed' },
+      { id: 'x6', label: 'Error ≤ 4^−k is tunable',
+        content: 'Independent rounds multiply the failure rate — choose k for any confidence target.',
+        kind: 'evidence', status: 'confirmed' },
+    ],
+    edges: [
+      { from: 'g1', to: 's1', relation: 'elaborates' },
+      { from: 's1', to: 's2', relation: 'depends-on' },
+      { from: 's2', to: 's3', relation: 'depends-on' },
+      { from: 's1', to: 'x1', relation: 'elaborates' },
+      { from: 's1', to: 'x2', relation: 'elaborates' },
+      { from: 's2', to: 'x3', relation: 'elaborates' },
+      { from: 's2', to: 'x4', relation: 'elaborates' },
+      { from: 's3', to: 'x5', relation: 'elaborates' },
+      { from: 's3', to: 'x6', relation: 'elaborates' },
+    ],
+  },
+};
