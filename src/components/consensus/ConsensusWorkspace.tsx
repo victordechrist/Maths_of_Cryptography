@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { LabTask, NodeKind } from '@/lib/consensus/types';
 import { emitActivity } from '@/lib/activity';
+import { requestProcessRating } from '@/lib/consensus/processRating';
 import { autoCommitThought } from '@/lib/consensus/autoCommit';
 import { scoreTree, scenesWithCommits } from '@/lib/consensus/tree';
 import { useConsensusTree } from '@/lib/consensus/useConsensusTree';
@@ -137,6 +138,8 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
         data: { nodeId: result.node.id, repairs: repairTarget, sceneId: scene.id },
       });
     }
+    // Advisory LLM process rating — async, never affects the commit flow.
+    requestProcessRating(task.labSlug, result.node.id);
     setDraft('');
     setRepairTargetId('');
     setKind('hypothesis');

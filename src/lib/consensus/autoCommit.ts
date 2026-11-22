@@ -4,6 +4,7 @@ import { consensusTreeKey } from '@/lib/storage';
 import { emitActivity } from '@/lib/activity';
 import { commitThought, freshTree, type CommitInput, type CommitResult } from './tree';
 import { getLabTask } from './index';
+import { requestProcessRating } from './processRating';
 import type { ConsensusGraph, LabTask } from './types';
 
 const STORAGE_EVENT = 'moc:localstorage';
@@ -66,6 +67,13 @@ export function autoCommitThought(
       matchedGold: Boolean(result.matchedGoldId),
     },
   });
+  if (
+    process.env.NEXT_PUBLIC_MOC_PROCESS_EVAL_AUTO === '1' &&
+    input.kind !== 'error' &&
+    result.node.status !== 'dead-end'
+  ) {
+    requestProcessRating(labSlug, result.node.id);
+  }
   return result;
 }
 
