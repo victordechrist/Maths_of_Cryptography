@@ -109,3 +109,14 @@ export interface LabTask {
   /** Canonical reasoning path the student tree is scored against. */
   goldTree: ConsensusGraph;
 }
+
+/** Path-level LLM outcome verdict (advisory — never affects scoring). */
+export type OutcomeVerdict = 'on-track' | 'partial' | 'off-track';
+
+/** Latest LLM outcome assessment for a lab's reasoning path. */
+export interface OutcomeAssessment {
+  verdict: OutcomeVerdict;
+  summary: string;
+  /** ISO timestamp of when the assessment was written. */
+  assessedAt: string;
+}
