@@ -258,6 +258,39 @@ export function commitThought(
   return { graph: syncChildSlots(next), node, matchedGoldId };
 }
 
+export interface ProcessRatingPayload {
+  rating: 'sure' | 'maybe' | 'impossible';
+  explanation: string;
+}
+
+/**
+ * Patch an LLM process rating onto one node of the LATEST stored graph.
+ * Metadata only: preserves `version`, `activePath`, edges, and every other
+ * node, so gold matching and `scoreTree` output are unaffected. Returns the
+ * input graph unchanged (same reference) when the node is gone.
+ */
+export function applyProcessRating(
+  graph: ConsensusGraph,
+  nodeId: string,
+  rating: ProcessRatingPayload,
+): ConsensusGraph {
+  if (!graph.nodes.some((n) => n.id === nodeId)) return graph;
+  return {
+    ...graph,
+    nodes: graph.nodes.map((n) =>
+      n.id === nodeId
+        ? {
+            ...n,
+            llmRating: rating.rating,
+            llmExplanation: rating.explanation,
+            llmRatedAt: new Date().toISOString(),
+          }
+        : n,
+    ),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
