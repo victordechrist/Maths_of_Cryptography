@@ -1,6 +1,6 @@
 'use client';
 
-import type { Scene } from '@/lib/consensus/types';
+import type { OutcomeAssessment, Scene } from '@/lib/consensus/types';
 import type { TreeScore } from '@/lib/consensus/tree';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle, CircleDot, Info, Target } from 'lucide-react';
@@ -15,9 +15,14 @@ interface ScoreboardProps {
   hasCommits: boolean;
   /** Advisory LLM process-rating counts across the student's nodes. */
   processCounts?: { sure: number; maybe: number; impossible: number };
+  /** Latest advisory path-level outcome assessment, if any. */
+  outcome?: OutcomeAssessment | null;
+  /** Manual "Assess my path" handler — absent hides the whole block. */
+  onAssessOutcome?: () => void;
+  assessingOutcome?: boolean;
 }
 
-export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasCommits, processCounts }: ScoreboardProps) {
+export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasCommits, processCounts, outcome, onAssessOutcome, assessingOutcome }: ScoreboardProps) {
   const ordered = [...scenes].sort((a, b) => a.order - b.order);
   const reached = new Set(score.reachedSceneIds);
   const pct = hydrated ? score.goldMatchPct : 0;
@@ -86,6 +91,44 @@ export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasComm
             </p>
           </div>
         )}
+
+      {onAssessOutcome && (
+        <div className="rounded-lg border border-slate-200 p-2.5 dark:border-slate-800">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            Outcome assessment (LLM, advisory)
+          </p>
+          {outcome ? (
+            <p className="mt-1 text-xs leading-snug text-slate-600 dark:text-slate-300">
+              <span
+                className={cn(
+                  'font-semibold',
+                  outcome.verdict === 'on-track'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : outcome.verdict === 'partial'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-red-600 dark:text-red-400',
+                )}
+              >
+                {outcome.verdict}
+              </span>
+              {' — '}
+              {outcome.summary}
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+              No assessment yet — checks whether your overall path is on track.
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={onAssessOutcome}
+            disabled={assessingOutcome}
+            className="mt-2 rounded-md border border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            {assessingOutcome ? 'Assessing…' : outcome ? 'Re-assess my path' : 'Assess my path'}
+          </button>
+        </div>
+      )}
 
       <p
         aria-live="polite"

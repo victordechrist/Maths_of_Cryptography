@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LabTask, NodeKind } from '@/lib/consensus/types';
+import type { LabTask, NodeKind, OutcomeAssessment } from '@/lib/consensus/types';
 import { emitActivity } from '@/lib/activity';
 import { requestProcessRating } from '@/lib/consensus/processRating';
+import { assessOutcome } from '@/lib/consensus/outcomeAssessment';
+import { isProcessEvalEnabled } from '@/lib/consensus/processEval';
 import { autoCommitThought } from '@/lib/consensus/autoCommit';
 import { scoreTree, scenesWithCommits } from '@/lib/consensus/tree';
 import { useConsensusTree } from '@/lib/consensus/useConsensusTree';
+import { outcomeAssessmentKey } from '@/lib/storage';
+import { useLocalStorage } from '@/lib/useLocalStorage';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TreeVisualizer } from './TreeVisualizer';
@@ -70,6 +74,28 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
     }
     return counts;
   }, [graph, hydrated]);
+  const [assessingOutcome, setAssessingOutcome] = useState(false);
+  const { value: storedOutcome, setValue: setStoredOutcome } = useLocalStorage<OutcomeAssessment | null>(
+    outcomeAssessmentKey(task.labSlug),
+    null,
+  );
+  // Shape-check the persisted record before rendering it.
+  const outcome = useMemo<OutcomeAssessment | null>(() => {
+    const v = storedOutcome;
+    if (!v || typeof v !== 'object') return null;
+    if (v.verdict !== 'on-track' && v.verdict !== 'partial' && v.verdict !== 'off-track') return null;
+    if (typeof v.summary !== 'string' || typeof v.assessedAt !== 'string') return null;
+    return { verdict: v.verdict, summary: v.summary.slice(0, 800), assessedAt: v.assessedAt };
+  }, [storedOutcome]);
+  const handleAssessOutcome = () => {
+    if (assessingOutcome) return;
+    setAssessingOutcome(true);
+    void assessOutcome(task.labSlug)
+      .then((result) => {
+        if (result) setStoredOutcome(result);
+      })
+      .finally(() => setAssessingOutcome(false));
+  };
   const hasCommits = graph.nodes.length > 1;
 
   const goldUnlocked = hydrated && scenes.every((s) => committedScenes.has(s.id));
@@ -424,6 +450,9 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
             hydrated={hydrated}
             hasCommits={hasCommits}
             processCounts={processCounts}
+            outcome={outcome}
+            onAssessOutcome={isProcessEvalEnabled() ? handleAssessOutcome : undefined}
+            assessingOutcome={assessingOutcome}
           />
         </section>
       </div>

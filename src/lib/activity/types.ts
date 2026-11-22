@@ -14,6 +14,7 @@ export type ActivityType =
   | 'tree.thought.repair'
   | 'tree.process.rating'
   | 'tree.process.rating.failed'
+  | 'tree.outcome.assessment'
   | 'tree.reset'
   | 'tree.gold.unlock'
   | 'activity.export'
