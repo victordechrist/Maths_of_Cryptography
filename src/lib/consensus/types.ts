@@ -60,6 +60,10 @@ export interface ConsensusNode {
   hintUsed?: boolean;
   /** How the node entered the tree — engagement events commit 'auto' nodes. */
   source?: 'auto' | 'manual';
+  /** Advisory LLM process rating — never affects gold matching or scoring. */
+  llmRating?: 'sure' | 'maybe' | 'impossible' | null;
+  llmExplanation?: string | null;
+  llmRatedAt?: string | null;
 }
 
 export interface ConsensusEdge {

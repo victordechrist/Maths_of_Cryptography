@@ -185,3 +185,19 @@ Invariants: `error` commits branch as dead-end children (never mutate the parent
 - `moc:v1:exercise:{lessonSlug}:{stepId}` → `ExerciseStepProgress` (placed ids, attempts, completedAt)
 - `moc:v1:tree:{lessonSlug}` → `ConsensusGraph`
 - Bump the `v1` segment only if a persisted shape changes incompatibly.
+
+## ⚙️ Optional: Live Process Evaluation (reasoning trees)
+
+The consensus thought-tree can optionally show an advisory LLM rating (`sure` / `maybe` / `impossible` + short explanation) next to each committed thought. The gold-tree score remains the official metric — process ratings never affect grading. Everything is disabled by default and the site builds and runs fine without any of these variables.
+
+| Variable | Values | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_MOC_PROCESS_EVAL` | `1` to enable | Client-side gate; the browser only calls the evaluation API when this is `1`. |
+| `MOC_EVAL_PROVIDER` | `gemini` (default) or `groq` | Which LLM backend the server route uses. |
+| `GEMINI_API_KEY` | Google AI Studio key | Required when provider is `gemini`. Free tier available (daily caps apply; free-tier prompts may be used by Google). |
+| `MOC_EVAL_MODEL` | model id | Gemini model override (default `gemini-3.8-flash`). |
+| `GROQ_API_KEY` | Groq console key | Required when provider is `groq`. Free tier: 30 RPM / 1,000 req/day. |
+| `MOC_EVAL_MODEL_GROQ` | model id | Groq model override (default `openai/gpt-oss-120b`). |
+| `NEXT_PUBLIC_MOC_PROCESS_EVAL_AUTO` | `1` to enable | Also rate auto-committed (templated) nodes — off by default. |
+
+Create keys in [Google AI Studio](https://aistudio.google.com/) or the [Groq console](https://console.groq.com/), and set the variables in your Vercel project settings (and `.env.local` for development — never commit keys).
