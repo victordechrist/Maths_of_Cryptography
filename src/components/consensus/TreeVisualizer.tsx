@@ -120,6 +120,18 @@ function nodeBox(node: ConsensusNode, variant: 'student' | 'gold', goldMatched: 
   }
 }
 
+const RATING_DOT: Record<NonNullable<ConsensusNode['llmRating']>, string> = {
+  sure: 'fill-emerald-500',
+  maybe: 'fill-amber-500',
+  impossible: 'fill-red-500',
+};
+
+const RATING_TEXT: Record<NonNullable<ConsensusNode['llmRating']>, string> = {
+  sure: 'text-emerald-600 dark:text-emerald-400',
+  maybe: 'text-amber-600 dark:text-amber-400',
+  impossible: 'text-red-600 dark:text-red-400',
+};
+
 function truncate(text: string, max: number): string {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
@@ -237,7 +249,12 @@ export function TreeVisualizer({
                 }}
                 className="cursor-pointer outline-none focus-visible:[&>rect:first-child]:stroke-indigo-500"
               >
-                <title>{node.content}</title>
+                <title>
+                  {node.content}
+                  {variant === 'student' && node.llmRating && node.llmExplanation
+                    ? `\n\nProcess signal (${node.llmRating}, advisory): ${node.llmExplanation}`
+                    : ''}
+                </title>
                 <rect
                   width={NODE_W}
                   height={NODE_H}
@@ -269,6 +286,7 @@ export function TreeVisualizer({
                 >
                   {node.kind}
                   {variant === 'student' && node.status !== 'active' ? ` · ${node.status}` : ''}
+                  {node.source === 'auto' ? ' · auto' : ''}
                 </text>
                 {goldMatched && (
                   <text x={NODE_W - 12} y={20} fontSize="12" textAnchor="end" className="fill-amber-500">
@@ -288,6 +306,25 @@ export function TreeVisualizer({
                 >
                   {truncate(node.label, 26)}
                 </text>
+                {variant === 'student' && node.llmRating && (
+                  <g aria-hidden>
+                    <circle
+                      cx={NODE_W - 20}
+                      cy={NODE_H - 10}
+                      r={4}
+                      className={RATING_DOT[node.llmRating]}
+                    />
+                    <text
+                      x={NODE_W - 12}
+                      y={NODE_H - 6}
+                      fontSize="9"
+                      textAnchor="end"
+                      className="fill-slate-500 font-mono uppercase dark:fill-slate-400"
+                    >
+                      {node.llmRating}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -303,11 +340,24 @@ export function TreeVisualizer({
               <span className="text-amber-600 dark:text-amber-400">· ★ gold matched</span>
             )}
             {selected.hintUsed && <span>· hint used</span>}
+            {variant === 'student' && selected.llmRating && (
+              <span className={cn('font-semibold', RATING_TEXT[selected.llmRating])}>
+                · {selected.llmRating} (LLM, advisory)
+              </span>
+            )}
           </div>
           <p className="font-medium text-slate-900 dark:text-slate-100">{selected.label}</p>
           <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-xs text-slate-600 dark:text-slate-300">
             {selected.content}
           </pre>
+          {variant === 'student' && selected.llmExplanation && (
+            <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600 dark:bg-slate-950 dark:text-slate-300">
+              <span className="font-semibold text-slate-500 dark:text-slate-400">
+                Process signal (advisory):{' '}
+              </span>
+              {selected.llmExplanation}
+            </p>
+          )}
         </div>
       )}
     </div>
