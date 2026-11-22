@@ -13,9 +13,11 @@ interface ScoreboardProps {
   /** False during SSR/first paint — renders the empty state. */
   hydrated: boolean;
   hasCommits: boolean;
+  /** Advisory LLM process-rating counts across the student's nodes. */
+  processCounts?: { sure: number; maybe: number; impossible: number };
 }
 
-export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasCommits }: ScoreboardProps) {
+export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasCommits, processCounts }: ScoreboardProps) {
   const ordered = [...scenes].sort((a, b) => a.order - b.order);
   const reached = new Set(score.reachedSceneIds);
   const pct = hydrated ? score.goldMatchPct : 0;
@@ -36,7 +38,7 @@ export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasComm
 
       <div className="space-y-1">
         <div className="flex justify-between text-xs font-semibold">
-          <span className="text-slate-500 dark:text-slate-400">Gold-tree alignment</span>
+          <span className="text-slate-500 dark:text-slate-400">Official score (gold-tree alignment)</span>
           <span className="font-mono text-emerald-600 dark:text-emerald-400">{pct}%</span>
         </div>
         <div
@@ -65,6 +67,25 @@ export function Scoreboard({ score, scenes, committedSceneIds, hydrated, hasComm
           </div>
         ))}
       </dl>
+
+      {processCounts &&
+        processCounts.sure + processCounts.maybe + processCounts.impossible > 0 && (
+          <div className="rounded-lg border border-slate-200 p-2.5 dark:border-slate-800">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Process signals (advisory)
+            </p>
+            <p className="mt-1 font-mono text-xs text-slate-600 dark:text-slate-300">
+              <span className="text-emerald-600 dark:text-emerald-400">{processCounts.sure} sure</span>
+              {' · '}
+              <span className="text-amber-600 dark:text-amber-400">{processCounts.maybe} maybe</span>
+              {' · '}
+              <span className="text-red-600 dark:text-red-400">{processCounts.impossible} impossible</span>
+            </p>
+            <p className="mt-1 text-[10px] leading-snug text-slate-400 dark:text-slate-500">
+              LLM-rated reasoning steps — advisory only, never affects the official score.
+            </p>
+          </div>
+        )}
 
       <p
         aria-live="polite"
