@@ -252,4 +252,22 @@ export const syllabusModules: Module[] = [
       },
     ],
   },
+  {
+    id: "mod-7",
+    slug: "cumulative-assessment",
+    title: "7. Cumulative Test Lab",
+    description: "Capstone assessment of the advanced cryptography stretch: pairing-based cryptography, lattice-based cryptography, zero-knowledge proofs, and homomorphic encryption.",
+    estimatedTime: "1 Hour",
+    lessons: [
+      {
+        id: "l7-1",
+        slug: "cumulative-test",
+        title: "Cumulative Test: Pairings, Lattices, ZK Proofs & HE/MPC",
+        description: "A cumulative assessment of the last four lessons — pairing-based cryptography, lattice-based cryptography & LWE, zero-knowledge proofs, and homomorphic encryption & MPC. Reasoning tasks plus an auto-graded quiz.",
+        moduleSlug: "cumulative-assessment",
+        order: 1,
+        estimatedTime: "1 Hour",
+      },
+    ],
+  },
 ];
