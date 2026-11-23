@@ -6,9 +6,10 @@ import { useConsensusTree } from '@/lib/consensus/useConsensusTree';
 import { TreeVisualizer } from '@/components/consensus/TreeVisualizer';
 import { emitActivity } from '@/lib/activity';
 import { exportTreeJSON, exportResearchBundle } from '@/lib/activity/export';
+import { exportTraceJSON } from '@/lib/consensus/traceExport';
 import { allTasksFinished, collectAllTrees, resetAllTrees } from '@/lib/consensus/treeLifecycle';
 import { Button } from '@/components/ui/button';
-import { Download, GitBranch, X } from 'lucide-react';
+import { Download, FileJson, GitBranch, X } from 'lucide-react';
 
 interface ThoughtTreeButtonProps {
   labSlug: string;
@@ -107,6 +108,14 @@ function ThoughtTreeButtonInner({
                   className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
                 >
                   <Download className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => exportTraceJSON(graph, task)}
+                  aria-label="Download PRM-style trace as JSON"
+                  title="Download PRM-style trace as JSON (problem + labeled reasoning steps)"
+                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                >
+                  <FileJson className="h-5 w-5" />
                 </button>
                 <button
                   onClick={close}

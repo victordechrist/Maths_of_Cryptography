@@ -60,6 +60,10 @@ export interface ConsensusNode {
   hintUsed?: boolean;
   /** How the node entered the tree — engagement events commit 'auto' nodes. */
   source?: 'auto' | 'manual';
+  /** Advisory LLM process rating — never affects gold matching or scoring. */
+  llmRating?: 'sure' | 'maybe' | 'impossible' | null;
+  llmExplanation?: string | null;
+  llmRatedAt?: string | null;
 }
 
 export interface ConsensusEdge {
@@ -104,4 +108,15 @@ export interface LabTask {
   scenes: Scene[];
   /** Canonical reasoning path the student tree is scored against. */
   goldTree: ConsensusGraph;
+}
+
+/** Path-level LLM outcome verdict (advisory — never affects scoring). */
+export type OutcomeVerdict = 'on-track' | 'partial' | 'off-track';
+
+/** Latest LLM outcome assessment for a lab's reasoning path. */
+export interface OutcomeAssessment {
+  verdict: OutcomeVerdict;
+  summary: string;
+  /** ISO timestamp of when the assessment was written. */
+  assessedAt: string;
 }

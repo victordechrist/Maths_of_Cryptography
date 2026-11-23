@@ -12,6 +12,11 @@ export function consensusTreeKey(labSlug: string): string {
   return `${MOC_STORAGE_PREFIX}:tree:${labSlug}`;
 }
 
+/** localStorage key for a lab's latest LLM outcome assessment. */
+export function outcomeAssessmentKey(labSlug: string): string {
+  return `${MOC_STORAGE_PREFIX}:outcome:${labSlug}`;
+}
+
 /** localStorage key for the append-only activity log (JSON array). */
 export function activityLogKey(): string {
   return `${MOC_STORAGE_PREFIX}:activity`;

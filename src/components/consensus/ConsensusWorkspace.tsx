@@ -1,11 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { LabTask, NodeKind } from '@/lib/consensus/types';
+import type { LabTask, NodeKind, OutcomeAssessment } from '@/lib/consensus/types';
 import { emitActivity } from '@/lib/activity';
+import { requestProcessRating } from '@/lib/consensus/processRating';
+import { assessOutcome } from '@/lib/consensus/outcomeAssessment';
+import { isProcessEvalEnabled } from '@/lib/consensus/processEval';
 import { autoCommitThought } from '@/lib/consensus/autoCommit';
 import { scoreTree, scenesWithCommits } from '@/lib/consensus/tree';
 import { useConsensusTree } from '@/lib/consensus/useConsensusTree';
+import { outcomeAssessmentKey } from '@/lib/storage';
+import { useLocalStorage } from '@/lib/useLocalStorage';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { TreeVisualizer } from './TreeVisualizer';
@@ -59,6 +64,38 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
   const score = useMemo(() => scoreTree(graph, task), [graph, task]);
   const committedScenes = useMemo(() => scenesWithCommits(graph), [graph]);
   const matchedGoldIds = useMemo(() => new Set(score.matchedGoldIds), [score.matchedGoldIds]);
+  const processCounts = useMemo(() => {
+    const counts = { sure: 0, maybe: 0, impossible: 0 };
+    if (!hydrated) return counts;
+    for (const n of graph.nodes) {
+      if (n.llmRating === 'sure') counts.sure += 1;
+      else if (n.llmRating === 'maybe') counts.maybe += 1;
+      else if (n.llmRating === 'impossible') counts.impossible += 1;
+    }
+    return counts;
+  }, [graph, hydrated]);
+  const [assessingOutcome, setAssessingOutcome] = useState(false);
+  const { value: storedOutcome, setValue: setStoredOutcome } = useLocalStorage<OutcomeAssessment | null>(
+    outcomeAssessmentKey(task.labSlug),
+    null,
+  );
+  // Shape-check the persisted record before rendering it.
+  const outcome = useMemo<OutcomeAssessment | null>(() => {
+    const v = storedOutcome;
+    if (!v || typeof v !== 'object') return null;
+    if (v.verdict !== 'on-track' && v.verdict !== 'partial' && v.verdict !== 'off-track') return null;
+    if (typeof v.summary !== 'string' || typeof v.assessedAt !== 'string') return null;
+    return { verdict: v.verdict, summary: v.summary.slice(0, 800), assessedAt: v.assessedAt };
+  }, [storedOutcome]);
+  const handleAssessOutcome = () => {
+    if (assessingOutcome) return;
+    setAssessingOutcome(true);
+    void assessOutcome(task.labSlug)
+      .then((result) => {
+        if (result) setStoredOutcome(result);
+      })
+      .finally(() => setAssessingOutcome(false));
+  };
   const hasCommits = graph.nodes.length > 1;
 
   const goldUnlocked = hydrated && scenes.every((s) => committedScenes.has(s.id));
@@ -137,6 +174,8 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
         data: { nodeId: result.node.id, repairs: repairTarget, sceneId: scene.id },
       });
     }
+    // Advisory LLM process rating — async, never affects the commit flow.
+    requestProcessRating(task.labSlug, result.node.id);
     setDraft('');
     setRepairTargetId('');
     setKind('hypothesis');
@@ -410,6 +449,10 @@ export function ConsensusWorkspace({ task }: ConsensusWorkspaceProps) {
             committedSceneIds={committedScenes}
             hydrated={hydrated}
             hasCommits={hasCommits}
+            processCounts={processCounts}
+            outcome={outcome}
+            onAssessOutcome={isProcessEvalEnabled() ? handleAssessOutcome : undefined}
+            assessingOutcome={assessingOutcome}
           />
         </section>
       </div>
@@ -439,9 +482,20 @@ function Legend({ gold }: { gold: boolean }) {
         </li>
       ))}
       {!gold && (
-        <li className="flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 bg-indigo-500" aria-hidden /> Active path
-        </li>
+        <>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-0.5 w-4 bg-indigo-500" aria-hidden /> Active path
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden /> Sure (LLM)
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-500" aria-hidden /> Maybe (LLM)
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-500" aria-hidden /> Impossible (LLM)
+          </li>
+        </>
       )}
     </ul>
   );
