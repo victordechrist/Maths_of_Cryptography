@@ -5,12 +5,16 @@
 import type { LabTask } from './types';
 import { l1_1Task } from './tasks/l1-1';
 import { l1_2Task } from './tasks/l1-2';
-import { l7_1Task } from './tasks/l7-1';
+import { test1Task } from './tasks/test-1';
+import { test2Task } from './tasks/test-2';
+import { test3Task } from './tasks/test-3';
 
 export const LAB_TASKS: Readonly<Record<string, LabTask>> = {
   [l1_1Task.labSlug]: l1_1Task,
   [l1_2Task.labSlug]: l1_2Task,
-  [l7_1Task.labSlug]: l7_1Task,
+  [test1Task.labSlug]: test1Task,
+  [test2Task.labSlug]: test2Task,
+  [test3Task.labSlug]: test3Task,
 };
 
 /** The consensus task for a lesson, or undefined when the lesson has none. */
